@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using RPFBE.Settings;
 using System;
 using System.IO;
@@ -9,30 +10,34 @@ namespace RPFBE.Service.ExtServs
 {
     public class AESc : IAESc
     {
+        public IConfiguration Configuration { get; }
+
         //private readonly byte[] _key;
-        private byte[] _IV;
-        public AESc()
+        //private byte[] _IV;
+        public AESc(IConfiguration configuration)
         {
+            Configuration = configuration;
             //    _key = Encoding.UTF8.GetBytes(Key);
-            _IV = Aes.Create().IV;
+            //_IV = Aes.Create().IV;
         }
-        public byte[] EncryptStringToBytes(string plainText, string Key)
+        public string EncryptStringToBytes(string plainText)
         {
-            byte[]  _key = Encoding.UTF8.GetBytes(Key);
+            byte[] _key = Encoding.UTF8.GetBytes(Configuration["JWT:KEY"]);
+            byte[] _iv = Encoding.UTF8.GetBytes(Configuration["JWT:IV"]);
             // Check arguments.
             if (plainText == null || plainText.Length <= 0)
                 throw new ArgumentNullException(nameof(plainText));
             if (_key == null || _key.Length <= 0)
                 throw new ArgumentNullException(nameof(_key));
-            if (_IV == null || _IV.Length <= 0)
-                throw new ArgumentNullException(nameof(_IV));
-            byte[] encrypted;
+            if (_iv == null || _iv.Length <= 0)
+                throw new ArgumentNullException(nameof(_iv));
+            string encrypted;
 
             // Create a Aes object with the specified key and IV.
             using (Aes aesAlg = Aes.Create())
             {
                 aesAlg.Key = _key;
-                aesAlg.IV = _IV;
+                aesAlg.IV = _iv;
 
                 // Create an encryptor to perform the stream transform.
                 ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
@@ -47,7 +52,7 @@ namespace RPFBE.Service.ExtServs
                             // Write all data to the stream.
                             swEncrypt.Write(plainText);
                         }
-                        encrypted = msEncrypt.ToArray();
+                        encrypted = Convert.ToBase64String(msEncrypt.ToArray());
                     }
                 }
             }
@@ -56,16 +61,17 @@ namespace RPFBE.Service.ExtServs
             return encrypted;
         }
 
-        public string DecryptStringFromBytes(byte[] cipherText, string Key)
+        public string DecryptStringFromBytes(string cipherText)
         {
-            byte[] _key = Encoding.UTF8.GetBytes(Key);
+            byte[] _key = Encoding.UTF8.GetBytes(Configuration["JWT:KEY"]);
+            byte[] _iv = Encoding.UTF8.GetBytes(Configuration["JWT:IV"]);
             // Check arguments.
             if (cipherText == null || cipherText.Length <= 0)
                 throw new ArgumentNullException(nameof(cipherText));
             if (_key == null || _key.Length <= 0)
                 throw new ArgumentNullException(nameof(_key));
-            if (_IV == null || _IV.Length <= 0)
-                throw new ArgumentNullException(nameof(_IV));
+            if (_iv == null || _iv.Length <= 0)
+                throw new ArgumentNullException(nameof(_iv));
 
             // Declare the string used to hold the decrypted text.
             string plaintext = null;
@@ -74,13 +80,13 @@ namespace RPFBE.Service.ExtServs
             using (Aes aesAlg = Aes.Create())
             {
                 aesAlg.Key = _key;
-                aesAlg.IV = _IV;
+                aesAlg.IV = _iv;
 
                 // Create a decryptor to perform the stream transform.
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
                 // Create the streams used for decryption.
-                using (MemoryStream msDecrypt = new MemoryStream(cipherText))
+                using (MemoryStream msDecrypt = new MemoryStream(Convert.FromBase64String(cipherText)))
                 {
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                     {

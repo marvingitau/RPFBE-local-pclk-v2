@@ -96,8 +96,9 @@ namespace RPFBE.Controllers
                 _logger.LogInformation("Viewing Posted Jobs");
                 return postedJobs;
             }
-            catch (Exception)
+            catch (Exception x)
             {
+                _logger.LogError("Posted Job Fetch Failed: " + x.Message);
                 return postedJobsList;
                 //return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = ex.Message });
             }

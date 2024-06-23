@@ -1223,6 +1223,56 @@ namespace RPFBE.Controllers
             }
         }
 
+        //Head HR Push to HR
+        // v.2 pclk
+        [Authorize(Roles = UserRoles.HEADHR)]
+        [Route("v2/headhrsendhr/{Reqno}")]
+        [HttpPost]
+        public async Task<IActionResult> HeadHRSendHR([FromBody] PushtoHRModel pushtoHR, string Reqno)
+        {
+            try
+            {
+                var user = await userManager.FindByNameAsync(HttpContext.User.Identity.Name);
+                var verb = Request.HttpContext.Request.Method;
+
+                RequisitionProgress reqModel = dbContext.RequisitionProgress.Where(x => x.ReqID == Reqno).FirstOrDefault();
+
+                reqModel.ProgressStatus = 4;
+                reqModel.UIDTwo = user.Id;
+                reqModel.UIDTwoComment = pushtoHR.HRcomment;
+                reqModel.UIDThree = user.Id;
+                reqModel.UIDThreeComment = "This record skipped MD";
+                dbContext.RequisitionProgress.Update(reqModel);
+                await dbContext.SaveChangesAsync();
+
+                //@email
+
+                //var emailMD = await codeUnitWebService.WSMailer().StaffRequisitiontoMDfromHRAsync(Reqno);
+                //send Email to MD
+                //var mdUser = dbContext.Users.Where(x => x.Id == reqModel.UIDTwo).First();
+                //Requisitionrequest requisitionrequest = new Requisitionrequest
+                //{
+                //    RequisionNo = Reqno,
+                //    ToEmail = hrUser.Email,
+                //    Username = hrUser.UserName
+                //};
+                //await mailService.RequisitionRequestAsync(requisitionrequest);
+
+                logger.LogInformation($"User:{user.EmployeeId},Verb:{verb},Path:Requisition Card {Reqno}  Pushed to HR from Head HR Success");
+                return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Requisition pushed to HR" });
+            }
+            catch (Exception x)
+            {
+                var user = await userManager.FindByNameAsync(HttpContext.User.Identity.Name);
+                var verb = Request.HttpContext.Request.Method;
+                logger.LogError($"User:{user.EmployeeId},Verb:{verb},Action:Head HR Requisition Card {Reqno} Pushed to HR failed,Message:{x.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "HEADHR Send to HR failed " + x.Message });
+            }
+        }
+
+
+
+
 
         //HR function
         [Authorize]
@@ -2154,6 +2204,8 @@ namespace RPFBE.Controllers
             }
         }
     
+        //Skipping HOD Level
+
       
 
    

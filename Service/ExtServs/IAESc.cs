@@ -1,8 +1,12 @@
-﻿namespace RPFBE.Service.ExtServs
+﻿using Microsoft.Extensions.Configuration;
+
+namespace RPFBE.Service.ExtServs
 {
     public interface IAESc
     {
-       public string DecryptStringFromBytes(byte[] cipherText,string Key);
-       public byte[] EncryptStringToBytes(string plainText, string Key);
+        IConfiguration Configuration { get; }
+
+        string DecryptStringFromBytes(string cipherText);
+        string EncryptStringToBytes(string plainText);
     }
 }
